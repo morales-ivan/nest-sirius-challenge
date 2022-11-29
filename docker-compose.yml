@@ -1,0 +1,64 @@
+version: "3.7"
+
+services:
+  main:
+    container_name: ${APP_CONTAINER_NAME}
+    build:
+      context: .
+      target: base
+    image: nest-challenge:latest
+    restart: on-failure
+    env_file: ./config/env/local-docker.env
+    command: ["yarn", "start:watch"]
+    volumes:
+        - .:/user/src/nest-challenge
+        - /usr/src/nest-challenge/node_modules
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    networks:
+      - app-network
+    depends_on:
+      - db
+  db:
+    container_name: ${DB_CONTAINER_NAME}
+    image: postgres
+    restart: on-failure
+    networks:
+      - app-network
+    env_file: ./config/env/local-docker.env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PWD}
+      PG_DATA: /var/lib/postgresql/data
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    ports:
+      - ${DB_PORT_MAPPING}:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  db_loader:
+    container_name: ${DB_CONTAINER_NAME}_loader
+    image: postgres
+    env_file: ./config/env/local-docker.env
+    volumes:
+      - ./config/db/restore:/postgres/dump
+    networks:
+      - app-network
+    profiles:
+      - init
+    depends_on:
+      - db
+    working_dir: /postgres/dump
+    restart: on-failure
+    environment:
+      PGHOST: ${DB_CONTAINER_NAME}
+      PGDATABASE: ${DB_NAME}
+      PGUSER: ${DB_USER}
+      PGPASSWORD: ${DB_PWD}
+    command: psql --file=init.sql
+
+volumes:
+  pgdata: {}
+
+networks:
+  app-network:

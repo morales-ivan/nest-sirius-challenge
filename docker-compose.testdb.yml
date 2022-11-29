@@ -1,0 +1,12 @@
+version: "3.7"
+
+services:
+  test-db:
+      container_name: sirius-nest-challenge-test-db
+      image: postgres
+      environment:
+          POSTGRES_DB: ${DB_NAME}
+          POSTGRES_USER: ${DB_USER}
+          POSTGRES_PASSWORD: ${DB_PWD}
+      ports:
+          - ${DB_PORT_MAPPING}:5432
